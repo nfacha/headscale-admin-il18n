@@ -2,7 +2,7 @@ name: Docker Build and Push
 on:
   push:
     branches:
-      - dev
+      - pr-2-features
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,5 +23,5 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: goodieshq/headscale-admin:dev
+          tags: nfacha/headscale-admin:pr-2-features
           platforms: linux/amd64,linux/arm64,linux/arm64/v8
