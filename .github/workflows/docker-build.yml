@@ -24,4 +24,4 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: nfacha/headscale-admin:pr-2-features
-          platforms: linux/amd64,linux/arm64,linux/arm64/v8
+          platforms: linux/amd64
