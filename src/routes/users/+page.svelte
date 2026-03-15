@@ -5,6 +5,7 @@
 	import UserTileCard from '$lib/cards/user/UserTileCard.svelte';
 	import CardTilePage from '$lib/cards/CardTilePage.svelte';
 	import PageHeader from '$lib/page/PageHeader.svelte';
+	import ExportModal from '$lib/parts/ExportModal.svelte';
 
 	import Page from '$lib/page/Page.svelte';
 	import type { User, Direction, OnlineStatus } from '$lib/common/types';
@@ -13,8 +14,12 @@
 	import { getSortedFilteredUsers } from '$lib/common/funcs';
 	import FilterOnlineBtn from '$lib/parts/FilterOnlineBtn.svelte';
 	import { _ } from 'svelte-i18n';
+	
+	// icons
+	import RawMdiDownload from '~icons/mdi/download';
 
 	let showCreate = $state(false);
+	let showExport = $state(false);
 	const layout = $derived(App.layoutUser.value)
 
 	// Sort & Filter
@@ -47,21 +52,34 @@
 		{/snippet}
 	</PageHeader>
 
-	<div
-		class="btn-group px-0 mx-0 py-0 my-0 rounded-md variant-ghost-secondary [&>*+*]:border-primary-500"
-	>
-		<SortBtn bind:value={sortMethod} direction={sortDirection} name={$_('common.id')} {toggle} />
-		<SortBtn bind:value={sortMethod} direction={sortDirection} name={$_('common.name')} {toggle} />
-	</div>
-	<div
-		class="btn-group ml-2 px-0 mx-0 py-0 my-0 rounded-md variant-ghost-secondary [&>*+*]:border-primary-500"
-	>
-		<FilterOnlineBtn bind:value={filterOnlineStatus} status="all" name={$_('common.all')} />
-		<FilterOnlineBtn bind:value={filterOnlineStatus} status="online" name={$_('common.online')} />
-		<FilterOnlineBtn bind:value={filterOnlineStatus} status="offline" name={$_('common.offline')} />
+	<div class="flex flex-wrap items-center gap-2 mb-4">
+		<div
+			class="btn-group px-0 mx-0 py-0 my-0 rounded-md variant-ghost-secondary [&>*+*]:border-primary-500"
+		>
+			<SortBtn bind:value={sortMethod} direction={sortDirection} name={$_('common.id')} {toggle} />
+			<SortBtn bind:value={sortMethod} direction={sortDirection} name={$_('common.name')} {toggle} />
+		</div>
+		<div
+			class="btn-group px-0 mx-0 py-0 my-0 rounded-md variant-ghost-secondary [&>*+*]:border-primary-500"
+		>
+			<FilterOnlineBtn bind:value={filterOnlineStatus} status="all" name={$_('common.all')} />
+			<FilterOnlineBtn bind:value={filterOnlineStatus} status="online" name={$_('common.online')} />
+			<FilterOnlineBtn bind:value={filterOnlineStatus} status="offline" name={$_('common.offline')} />
+		</div>
+		
+		<button
+			type="button"
+			class="btn btn-sm variant-ghost-primary rounded-md"
+			onclick={() => showExport = true}
+		>
+			<RawMdiDownload class="w-4 h-4 mr-1" />
+			{$_('common.export')}
+		</button>
 	</div>
 
 	<Outer>
+	
+	<ExportModal bind:show={showExport} />
 		{#each usersSortedFiltered as user}
 			<Inner {user}></Inner>
 		{/each}

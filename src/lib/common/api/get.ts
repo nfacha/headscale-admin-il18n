@@ -1,5 +1,7 @@
-import { API_URL_NODE, API_URL_POLICY, API_URL_PREAUTHKEY, API_URL_USER, apiGet } from '$lib/common/api';
+import { API_URL_APIKEY, API_URL_NODE, API_URL_POLICY, API_URL_PREAUTHKEY, API_URL_USER, apiGet } from '$lib/common/api';
 import type {
+	ApiApiKeys,
+	ApiKey,
 	ApiNodes,
 	ApiPolicy,
 	ApiPreAuthKeys,
@@ -9,6 +11,7 @@ import type {
 	User,
 } from '$lib/common/types';
 import { debug } from '../debug';
+import { mapApiPreAuthKeys } from './mappers';
 
 export async function getPreAuthKeys(
 	user_ids?: string[],
@@ -17,25 +20,44 @@ export async function getPreAuthKeys(
 	if (user_ids == undefined) {
 		user_ids = (await getUsers(init)).map((u) => u.id);
 	}
-	const promises: Promise<ApiPreAuthKeys>[] = [];
-	let preAuthKeysAll: PreAuthKey[] = [];
+
+	// Fetch all users first to have User objects for mapping
+	const allUsers = await getUsers(init);
+	const userMap = new Map(allUsers.map(u => [u.id, u]));
+
+	const promises: Promise<any>[] = [];
+	const userIdList: string[] = [];
 
 	user_ids.forEach((user_id: string) => {
 		if(user_id != ""){
 			promises.push(
 				apiGet<ApiPreAuthKeys>(API_URL_PREAUTHKEY + '?user=' + user_id, init),
 			);
+			userIdList.push(user_id);
 		}
 	});
 
 	const results = await Promise.all(promises);
-	results.forEach((data) => {
-		if (data && data.preAuthKeys) {
-			preAuthKeysAll = preAuthKeysAll.concat(data.preAuthKeys);
+	let preAuthKeysAll: PreAuthKey[] = [];
+
+	results.forEach((data, index) => {
+		if (data && data.preAuthKeys && Array.isArray(data.preAuthKeys)) {
+			const userId = userIdList[index];
+			const user = userMap.get(userId);
+
+			if (user) {
+				try {
+					const mappedKeys = mapApiPreAuthKeys(data.preAuthKeys, user);
+					preAuthKeysAll = preAuthKeysAll.concat(mappedKeys);
+					debug(`Mapped ${mappedKeys.length} PreAuthKeys for user ${userId}`);
+				} catch (e) {
+					debug('Error mapping PreAuthKeys for user', userId, e);
+				}
+			}
 		}
 	});
 	
-	// Remove duplicates based on ID, just in case
+	// Remove duplicates based on ID
 	const seenIds = new Set();
 	preAuthKeysAll = preAuthKeysAll.filter(item => {
 		const duplicate = seenIds.has(item.id);
@@ -43,6 +65,7 @@ export async function getPreAuthKeys(
 		return !duplicate;
 	});
 
+	debug(`Total PreAuthKeys loaded: ${preAuthKeysAll.length}`);
 	return preAuthKeysAll;
 }
 
@@ -73,7 +96,24 @@ export async function getNodes(): Promise<Node[]> {
 	return nodes;
 }
 
+export async function getNode(nodeId: string | number): Promise<Node> {
+	const { node } = await apiGet<{ node: Node }>(`${API_URL_NODE}/${nodeId}`);
+	debug('Fetched Node ID:', nodeId);
+	return node;
+}
+
 export async function getPolicy(): Promise<string> {
 	const { policy } = await apiGet<ApiPolicy>(API_URL_POLICY)
 	return policy
+}
+
+export async function getApiKeys(init?: RequestInit): Promise<ApiKey[]> {
+	const { apiKeys } = await apiGet<ApiApiKeys>(API_URL_APIKEY, init);
+	return apiKeys;
+}
+
+export async function getHealth(): Promise<{ databaseConnectivity: boolean }> {
+	const { databaseConnectivity } = await apiGet<{ databaseConnectivity: boolean }>('/api/v1/health');
+	debug('Health check - DB connectivity:', databaseConnectivity);
+	return { databaseConnectivity };
 }
